@@ -1,3 +1,17 @@
+var festDate = new Date(2018,6,16); //Needs update
+var places = [
+    { key: '', label: '' },
+    { key: 'Nagyszínpad', label: 'Nagyszínpad' },
+    { key: 'PajtaSzínház', label: 'PajtaSzínház' },
+    { key: 'test3', label: 'test3' }
+  ];
+
+var partners = [
+    { key: '', label: '' },
+    { key: 'kiskacsa', label: 'kacsa' },
+    { key: 'nagykacsa', label: 'nagyk' }
+  ];
+
 $(document).ready(function(){
   scheduler.config.multi_day = true;
   scheduler.config.prevent_cache = true;
@@ -9,6 +23,8 @@ $(document).ready(function(){
   scheduler.config.auto_end_date = true;
   scheduler.config.details_on_dblclick = true;
   scheduler.config.details_on_create = true;
+  scheduler.config.drag_create = false;
+  scheduler.config.drag_resize= false;
 
   scheduler.form_blocks["my_editor"] = {
     render:function(sns) {
@@ -41,31 +57,23 @@ $(document).ready(function(){
     return css; // default return
   };
 
+  scheduler.templates.event_text = function(start,end,ev){
+    return /*"<strong>" + */ev.text/* + "</strong><br>"  + ev.description*/;
+  };
+
   scheduler.attachEvent("onBeforeEventCreated", function (e){
     return false;
   });
 
   scheduler.attachEvent("onEventAdded", function(id,ev){
-    console.table([ev.text, ev.stext, ev.description, ev.place, ev.partner, ev.start_date.getTime()/1000, ev.end_date.getTime()/1000]);
+    console.table([ev.id, ev.text, ev.stext, ev.description, ev.place, ev.partner, ev.start_date.getTime()/1000, ev.end_date.getTime()/1000]);
   });
 
   scheduler.attachEvent("onEventChanged", function(id,ev){
-    console.table([ev.text, ev.stext, ev.description, ev.place, ev.partner, ev.start_date.getTime()/1000, ev.end_date.getTime()/1000]);
+    console.table([ev.id, ev.text, ev.stext, ev.description, ev.place, ev.partner, ev.start_date.getTime()/1000, ev.end_date.getTime()/1000]);
   });
 
-  var places = [
-    { key: '', label: 'default' },
-    { key: 'nagyszinpad', label: 'Nagyszínpad' },
-    { key: 'test2', label: 'test2' },
-    { key: 'test3', label: 'test3' }
-  ];
-
-  var partners = [
-    { key: '', label: 'default',
-      key: 'kiskacsa', label: 'kacsa'}
-  ];
-
-    scheduler.config.lightbox.sections = [
+  scheduler.config.lightbox.sections = [
     { name:"Név", height:25, map_to:"text", type:"textarea" , focus:true },
     { name:"Rövidített név", height:25, map_to:"stext", type:"textarea"},
     { name:"Leírás", height:200, map_to:"description", type:"textarea"},
@@ -74,17 +82,38 @@ $(document).ready(function(){
     { name:"time", height:72, type:"time", map_to:"auto" }
   ];
 
-  scheduler.init('scheduler_here', new Date(2018,6,16), "week");
+  scheduler.init('scheduler_here', festDate, "week");
 
-  scheduler.parse([
-    {id:"1", start_date:"2018-07-18 01:00", end_date:"2018-07-18 12:00", text:"Koncert", stext:"konc", description:"hosszabb text vagy mi", place:"nagyszinpad", partner:"kiskacsa"},
-    {id:"2", start_date:"2018-07-18 02:00", end_date:"2018-07-18 14:00", text:"Koncert2", stext:"konc2", description:"hosszabb text vagy mi", place:"test2", partner:"kiskacsa"},
-    {id:"3", start_date:"2018-07-19 02:00", end_date:"2018-07-19 03:00", text:"Koncert3", stext:"konc3", description:"hosszabb text vagy mi", place:"test3", partner:"kiskacsa"}
-  ],"json")
+  function fillScheduler(){
+    var events = JSON.parse(this.responseText);
+    events = events.program;
+    var arrayS = [];
+    for (var i = 0; i < events.length; i++){
+      console.log(events[i]);
+      var temp = {};
+      temp.id = events[i].id;
+      temp.text = events[i].name;
+      temp.description = events[i].description;
+      temp.place = events[i].location;
+      temp.start_date = new Date(events[i].start);
+      temp.start_date = temp.start_date.getFullYear() + '-' + ( +temp.start_date.getMonth() +1 ) + '-' + temp.start_date.getDate() + ' ' + temp.start_date.getHours() + ':' + temp.start_date.getMinutes();
+      temp.end_date = new Date(events[i].end);
+      temp.end_date = temp.end_date.getFullYear() + '-' + ( +temp.end_date.getMonth() +1 ) + '-' + temp.end_date.getDate() + ' ' + temp.end_date.getHours() + ':' + temp.end_date.getMinutes();
+
+      arrayS.push(temp);
+    }
+    scheduler.parse(arrayS, "json");
+  }
+
+  var xhr = new XMLHttpRequest();
+  xhr.addEventListener("load", fillScheduler);
+  xhr.open("GET","https://www.gombaszog.sk/api/program");
+  xhr.send();
+
 
   $('#add_event_btn').click(function(){
     scheduler.addEventNow({
-      start_date: new Date(2018,6,16,0,0)
+      start_date: festDate
     })
   })
 
